@@ -21,7 +21,7 @@ import torch
 from transformers import AutoModelForCausalLM
 
 from deepseek_vl.models import MultiModalityCausalLM, VLChatProcessor
-from deepseek_vl.utils.io import load_pil_images
+from deepseek_vl.utils.io import load_pil_images, get_device_and_dtype
 
 # specify the path to the model
 model_path = "deepseek-ai/deepseek-vl-7b-chat"
@@ -31,7 +31,8 @@ tokenizer = vl_chat_processor.tokenizer
 vl_gpt: MultiModalityCausalLM = AutoModelForCausalLM.from_pretrained(
     model_path, trust_remote_code=True
 )
-vl_gpt = vl_gpt.to(torch.bfloat16).cuda().eval()
+device, dtype = get_device_and_dtype()
+vl_gpt = vl_gpt.to(dtype).to(device).eval()
 
 conversation = [
     {
@@ -47,7 +48,7 @@ conversation = [
 pil_images = load_pil_images(conversation)
 prepare_inputs = vl_chat_processor(
     conversations=conversation, images=pil_images, force_batchify=True
-).to(vl_gpt.device)
+).to(vl_gpt.device, dtype=dtype)
 
 # run image encoder to get the image embeddings
 inputs_embeds = vl_gpt.prepare_inputs_embeds(**prepare_inputs)
